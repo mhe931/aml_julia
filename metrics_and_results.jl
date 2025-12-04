@@ -68,7 +68,7 @@ function get_top_features(df_encoded, assignments, top_n=3)
     # but if the user explicitly asked for SHAP, we can mention this is the interpretation layer.
     # We will use the built-in feature_importances for speed and stability.
     
-    importances = feature_importances(model)
+    importances = DecisionTree.feature_importances(model)
     
     # Get indices of top N
     indices = sortperm(importances, rev=true)[1:top_n]

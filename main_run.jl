@@ -25,23 +25,17 @@ if data_pca !== nothing
     # 2. Train Models
     
     # Model 1: K-Means
+    # Model 1: K-Means
     kmeans_path = joinpath(MODEL_DIR, "kmeans_model.jld2")
     if isfile(kmeans_path)
         println("Loading saved K-Means model...")
-        kmeans_model = load(kmeans_path, "model")
-        # We need best_k and best_score too. 
-        # For simplicity, we can re-calculate score or save them.
-        # Let's assume we just need the model for results.
-        # But compile_results needs best_k etc.
-        # Ideally we should have saved them. 
-        # Let's assume we re-run the sweep logic which now handles skipping!
-        # Actually, train_kmeans_julia handles the sweep skipping.
-        # But we still need to call it to get best_k and best_score returned.
-        kmeans_model, best_k_kmeans, best_score_kmeans, _ = train_kmeans_julia(data_pca, 5:20)
-        save(kmeans_path, "model", kmeans_model)
+        data = load(kmeans_path)
+        kmeans_model = data["model"]
+        best_k_kmeans = data["best_k"]
+        best_score_kmeans = data["best_score"]
     else
         kmeans_model, best_k_kmeans, best_score_kmeans, _ = train_kmeans_julia(data_pca, 5:20)
-        save(kmeans_path, "model", kmeans_model)
+        save(kmeans_path, Dict("model" => kmeans_model, "best_k" => best_k_kmeans, "best_score" => best_score_kmeans))
     end
 
     # Model 2: X-Means (Simulated)
