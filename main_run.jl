@@ -30,9 +30,15 @@ if data_pca !== nothing
     if isfile(kmeans_path)
         println("Loading saved K-Means model...")
         data = load(kmeans_path)
-        kmeans_model = data["model"]
-        best_k_kmeans = data["best_k"]
-        best_score_kmeans = data["best_score"]
+        if haskey(data, "best_k")
+            kmeans_model = data["model"]
+            best_k_kmeans = data["best_k"]
+            best_score_kmeans = data["best_score"]
+        else
+            println("Metadata missing in checkpoint. Re-evaluating (fast via sweep checkpoint)...")
+            kmeans_model, best_k_kmeans, best_score_kmeans, _ = train_kmeans_julia(data_pca, 5:20)
+            save(kmeans_path, Dict("model" => kmeans_model, "best_k" => best_k_kmeans, "best_score" => best_score_kmeans))
+        end
     else
         kmeans_model, best_k_kmeans, best_score_kmeans, _ = train_kmeans_julia(data_pca, 5:20)
         save(kmeans_path, Dict("model" => kmeans_model, "best_k" => best_k_kmeans, "best_score" => best_score_kmeans))
