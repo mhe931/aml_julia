@@ -59,16 +59,27 @@ function get_top_features(df_encoded, assignments, top_n=3)
     model = DecisionTreeClassifier(max_depth=5)
     fit!(model, features, labels)
     
-    # Calculate Feature Importances (Gini)
-    # importances = feature_importances(model)
+    # Calculate Feature Importances (Manual Frequency)
+    # Robust against API changes (feature_importances vs impurity_importance)
+    n_features = size(features, 2)
+    importances = zeros(Float64, n_features)
     
-    # Better: Permutation Importance (Model Agnostic / SHAP-like proxy)
-    # Note: Permutation importance is computationally more expensive but more reliable.
-    # Given the "Critical memory" context, we stick to Gini for speed, 
-    # but if the user explicitly asked for SHAP, we can mention this is the interpretation layer.
-    # We will use the built-in feature_importances for speed and stability.
-    
-    importances = DecisionTree.feature_importances(model)
+    if hasproperty(model, :root)
+        queue = Any[model.root]
+        while !isempty(queue)
+            node = popfirst!(queue)
+            # Check if it is a Node (has featid)
+            if hasproperty(node, :featid)
+                importances[node.featid] += 1.0
+                if hasproperty(node, :left)
+                    push!(queue, node.left)
+                end
+                if hasproperty(node, :right)
+                    push!(queue, node.right)
+                end
+            end
+        end
+    end
     
     # Get indices of top N
     indices = sortperm(importances, rev=true)[1:top_n]
