@@ -5,6 +5,7 @@ using LinearAlgebra
 using Random
 using JLD2
 using FileIO
+using Distances
 
 function train_kmeans_julia(data, k_range)
     println("Training K-Means...")
@@ -21,7 +22,20 @@ function train_kmeans_julia(data, k_range)
         # Calculate Silhouette
         # silhouettes(assignments, counts, X)
         # Note: silhouettes in Clustering.jl returns individual scores.
-        sils = silhouettes(result, data)
+        # Calculate Silhouette on Subsample (max 15k)
+        n_samples = size(data, 2)
+        if n_samples > 15000
+            indices = randperm(n_samples)[1:15000]
+            sub_data = data[:, indices]
+            sub_assignments = result.assignments[indices]
+        else
+            sub_data = data
+            sub_assignments = result.assignments
+        end
+        
+        # Compute distance matrix (required for silhouettes in some versions)
+        D = pairwise(Euclidean(), sub_data, dims=2)
+        sils = silhouettes(sub_assignments, D)
         score = mean(sils)
         
         results[k] = score

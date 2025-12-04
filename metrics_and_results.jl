@@ -79,6 +79,23 @@ function get_top_features(df_encoded, assignments, top_n=3)
     return top_feats
 end
 
+function calculate_silhouette_score(data, assignments, max_samples=15000)
+    n_samples = size(data, 2)
+    if n_samples > max_samples
+        indices = randperm(n_samples)[1:max_samples]
+        sub_data = data[:, indices]
+        sub_assignments = assignments[indices]
+    else
+        sub_data = data
+        sub_assignments = assignments
+    end
+    
+    # Compute distance matrix
+    D = pairwise(Euclidean(), sub_data, dims=2)
+    sils = silhouettes(sub_assignments, D)
+    return mean(sils)
+end
+
 # Davies-Bouldin implementation
 function davies_bouldin(data, assignments, centers)
     k = size(centers, 2)
@@ -140,8 +157,7 @@ function compile_and_save_results(data_pca, df_encoded, kmeans_model, best_k_kme
     ))
     
     # --- X-Means Analysis ---
-    sils_xm = silhouettes(xmeans_model, data_pca)
-    score_xm = mean(sils_xm)
+    score_xm = calculate_silhouette_score(data_pca, xmeans_model.assignments)
     db_score_xm = davies_bouldin(data_pca, xmeans_model.assignments, xmeans_model.centers)
     
     outliers_xm, thresh_xm = calculate_outliers(data_pca, xmeans_model.assignments, xmeans_model.centers)
@@ -160,8 +176,7 @@ function compile_and_save_results(data_pca, df_encoded, kmeans_model, best_k_kme
     ))
     
     # --- Autoencoder Analysis ---
-    sils_ae = silhouettes(ae_kmeans, latent_data)
-    score_ae = mean(sils_ae)
+    score_ae = calculate_silhouette_score(latent_data, ae_kmeans.assignments)
     db_score_ae = davies_bouldin(latent_data, ae_kmeans.assignments, ae_kmeans.centers)
     
     outliers_ae, thresh_ae = calculate_outliers(latent_data, ae_kmeans.assignments, ae_kmeans.centers)
