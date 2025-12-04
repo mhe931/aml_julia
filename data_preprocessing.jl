@@ -4,6 +4,8 @@ using Statistics
 using MultivariateStats
 using LinearAlgebra
 using SparseArrays
+using JLD2
+using FileIO
 
 # Configuration
 const DATA_FILE = joinpath("data", "MARC all.csv")
@@ -11,6 +13,13 @@ const OUTPUT_FILE = "analysis_summary.txt"
 const MODEL_DIR = "models_julia"
 
 function load_and_preprocess_data(filepath)
+    checkpoint_file = joinpath(MODEL_DIR, "data_pca.jld2")
+    if isfile(checkpoint_file)
+        println("Loading preprocessed data from checkpoint: $checkpoint_file")
+        data = load(checkpoint_file)
+        return data["data_pca"], data["df_encoded"], data["pca_model"], data["scaler_params"]
+    end
+
     println("Loading data from $filepath...")
     if !isfile(filepath)
         println("Error: $filepath not found.")
@@ -154,6 +163,15 @@ function load_and_preprocess_data(filepath)
     data_pca = MultivariateStats.transform(M, data_scaled)
     
     println("Data shape after PCA: ", size(data_pca))
+    
+    # Save Checkpoint
+    println("Saving preprocessed data checkpoint...")
+    save(checkpoint_file, Dict(
+        "data_pca" => data_pca,
+        "df_encoded" => df_encoded,
+        "pca_model" => M,
+        "scaler_params" => (dt_mean, dt_std)
+    ))
     
     return data_pca, df_encoded, M, (dt_mean, dt_std)
 end

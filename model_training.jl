@@ -13,9 +13,25 @@ function train_kmeans_julia(data, k_range)
     best_k = -1
     best_model = nothing
     
-    results = Dict()
+    checkpoint_file = joinpath("models_julia", "kmeans_sweep.jld2")
+    if isfile(checkpoint_file)
+        println("Loading existing K-Means results...")
+        results = load(checkpoint_file, "results")
+    else
+        results = Dict()
+    end
 
     for k in k_range
+        if haskey(results, k)
+            println("Skipping K=$k (already computed). Silhouette=$(round(results[k], digits=4))")
+            score = results[k]
+            if score > best_score
+                best_score = score
+                best_k = k
+            end
+            continue
+        end
+
         # Clustering.jl kmeans expects Features x Samples
         result = kmeans(data, k; maxiter=100, display=:none)
         
@@ -36,6 +52,7 @@ function train_kmeans_julia(data, k_range)
         score = mean(sils)
         
         results[k] = score
+        save(checkpoint_file, "results", results)
         println("K=$k, Silhouette=$(round(score, digits=4))")
         
         if score > best_score
@@ -43,6 +60,11 @@ function train_kmeans_julia(data, k_range)
             best_k = k
             best_model = result
         end
+    end
+    
+    if best_k != -1 && best_model === nothing
+        println("Retraining best K=$best_k to recover model...")
+        best_model = kmeans(data, best_k; maxiter=100, display=:none)
     end
             
     return best_model, best_k, best_score, results
@@ -64,11 +86,6 @@ function train_xmeans_simulated(data, max_k=20)
         wcss = result.totalcost
         
         # Variance estimate
-        # variance = wcss / (n_samples - k)
-        # This is a simplified BIC for K-Means
-        # BIC = n * ln(wcss/n) + k * ln(n) * d? 
-        # Standard BIC: n * ln(RSS/n) + k * ln(n)
-        
         bic = n_samples * log(wcss / n_samples) + k * log(n_samples)
         
         if bic < best_bic
@@ -101,11 +118,12 @@ function train_autoencoder_clustering(data, encoding_dim=10, epochs=20)
     
     model = Chain(encoder, decoder)
     
-    # Loss function
-    loss(x) = Flux.mse(model(x), x)
+    # Loss function (must accept model for explicit gradient)
+    loss(m, x) = Flux.mse(m(x), x)
     
     # Optimizer
-    opt = Adam(0.001)
+    # Modern Flux: Setup optimizer state
+    opt_state = Flux.setup(Adam(0.001), model)
     
     # Data Loader
     # Flux expects batches. 
@@ -114,9 +132,16 @@ function train_autoencoder_clustering(data, encoding_dim=10, epochs=20)
     
     # Training Loop
     for epoch in 1:epochs
-        Flux.train!(loss, Flux.params(model), data_loader, opt)
+        for x_batch in data_loader
+            # Explicit gradient calculation
+            val, grads = Flux.withgradient(model) do m
+                loss(m, x_batch)
+            end
+            Flux.update!(opt_state, model, grads[1])
+        end
+        
         # Calculate epoch loss
-        current_loss = loss(data)
+        current_loss = loss(model, data)
         println("Epoch $epoch/$epochs, Loss: $(round(current_loss, digits=4))")
     end
     
