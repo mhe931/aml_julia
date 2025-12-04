@@ -19,9 +19,6 @@ function train_kmeans_julia(data, k_range)
         # Clustering.jl kmeans expects Features x Samples
         result = kmeans(data, k; maxiter=100, display=:none)
         
-        # Calculate Silhouette
-        # silhouettes(assignments, counts, X)
-        # Note: silhouettes in Clustering.jl returns individual scores.
         # Calculate Silhouette on Subsample (max 15k)
         n_samples = size(data, 2)
         if n_samples > 15000
