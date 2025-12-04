@@ -16,7 +16,7 @@ function train_kmeans_julia(data, k_range)
 
     for k in k_range
         # Clustering.jl kmeans expects Features x Samples
-        result = kmeans(data, k; max_iter=100, display=:none)
+        result = kmeans(data, k; maxiter=100, display=:none)
         
         # Calculate Silhouette
         # silhouettes(assignments, counts, X)
@@ -46,7 +46,7 @@ function train_xmeans_simulated(data, max_k=20)
     d, n_samples = size(data)
     
     for k in 2:max_k
-        result = kmeans(data, k; max_iter=100, display=:none)
+        result = kmeans(data, k; maxiter=100, display=:none)
         
         # Calculate BIC
         # WCSS (Within-Cluster Sum of Squares) is result.totalcost
@@ -113,7 +113,7 @@ function train_autoencoder_clustering(data, encoding_dim=10, epochs=20)
     latent_data = encoder(data)
     
     println("Clustering on Latent Space...")
-    kmeans_ae = kmeans(latent_data, 5; max_iter=100) # Fixed K=5 or search
+    kmeans_ae = kmeans(latent_data, 5; maxiter=100) # Fixed K=5 or search
     
     return model, kmeans_ae, latent_data
 end
