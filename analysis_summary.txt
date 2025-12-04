@@ -1,0 +1,27 @@
+Advanced Unsupervised Clustering Analysis Summary (Julia)
+=======================================================
+
+Model: K-Means (Optimized)
+-----------------------------------------------
+Optimal Clusters (K): 9
+Silhouette Score:     0.4856
+Davies-Bouldin Index: 0.678
+Top 3 Features:       ZZAVAIL_CHECK, MMSTA, MMSTD
+Outliers Detected:    16339 (5.0%)
+
+Model: X-Means (Simulated)
+-----------------------------------------------
+Optimal Clusters (K): 20
+Silhouette Score:     0.3247
+Davies-Bouldin Index: 0.9619
+Top 3 Features:       ZZAVAIL_CHECK, MMSTA, MMSTD
+Outliers Detected:    16339 (5.0%)
+
+Model: Autoencoder + K-Means
+-----------------------------------------------
+Optimal Clusters (K): 5
+Silhouette Score:     0.7444
+Davies-Bouldin Index: 1.6048
+Top 3 Features:       ZZAVAIL_CHECK, MMSTA, MMSTD
+Outliers Detected:    16332 (5.0%)
+

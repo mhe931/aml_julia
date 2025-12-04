@@ -146,7 +146,7 @@ function davies_bouldin(data, assignments, centers)
     return db_sum / k
 end
 
-function compile_and_save_results(data_pca, df_encoded, kmeans_model, best_k_kmeans, best_score_kmeans, xmeans_model, best_k_xmeans, ae_kmeans, latent_data, output_file)
+function compile_and_save_results(data_pca, df_encoded, kmeans_model, best_k_kmeans, best_score_kmeans, xmeans_model, best_k_xmeans, ae_kmeans, latent_data, shap_importance, output_file)
     results_summary = []
     
     # --- K-Means Analysis ---
@@ -205,6 +205,9 @@ function compile_and_save_results(data_pca, df_encoded, kmeans_model, best_k_kme
         "Top_Features" => top_feats_ae
     ))
     
+    # Format SHAP results
+    shap_top_3 = [p[1] for p in shap_importance[1:min(3, length(shap_importance))]]
+    
     # Write Summary
     println("\nWriting results to $output_file...")
     open(output_file, "w") do f
@@ -220,6 +223,12 @@ function compile_and_save_results(data_pca, df_encoded, kmeans_model, best_k_kme
             write(f, "Top 3 Features:       $(join(res["Top_Features"], ", "))\n")
             write(f, "Outliers Detected:    $(res["Outliers_Count"]) ($(round(res["Outliers_Pct"], digits=2))%)\n")
             write(f, "\n")
+        end
+        
+        write(f, "SHAP Global Feature Importance (Surrogate Model for Autoencoder)\n")
+        write(f, "--------------------------------------------------------------\n")
+        for (i, (feat, score)) in enumerate(shap_importance[1:min(10, length(shap_importance))])
+            write(f, "$i. $feat: $(round(score, digits=4))\n")
         end
     end
     

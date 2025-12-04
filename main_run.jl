@@ -10,6 +10,7 @@ using CSV, DataFrames, Clustering, MultivariateStats, Flux, Statistics, LinearAl
 include("data_preprocessing.jl")
 include("model_training.jl")
 include("metrics_and_results.jl")
+include("model_explanation.jl")
 
 # Main execution
 println("Starting Advanced Unsupervised Clustering Pipeline...")
@@ -89,8 +90,13 @@ if data_pca !== nothing
         save(joinpath(MODEL_DIR, "ae_kmeans_model.jld2"), "model", ae_kmeans)
     end
 
-    # 3. Metrics and Results
-    compile_and_save_results(data_pca, df_encoded, kmeans_model, best_k_kmeans, best_score_kmeans, xmeans_model, best_k_xmeans, ae_kmeans, latent_data, OUTPUT_FILE)
+    # 3. SHAP Analysis
+    println("Performing SHAP Analysis on Autoencoder + K-Means model...")
+    # We use df_encoded (original features) and ae_kmeans.assignments (labels)
+    shap_importance = generate_shap_analysis(df_encoded, ae_kmeans.assignments, names(df_encoded))
+
+    # 4. Metrics and Results
+    compile_and_save_results(data_pca, df_encoded, kmeans_model, best_k_kmeans, best_score_kmeans, xmeans_model, best_k_xmeans, ae_kmeans, latent_data, shap_importance, OUTPUT_FILE)
     
     println("Pipeline completed successfully.")
 else
