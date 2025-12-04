@@ -31,3 +31,4 @@ JuliaLocalPreferences.toml
 *.jld2
 *.zip
 *.rar
+.ipynb_checkpoints

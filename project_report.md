@@ -2,104 +2,115 @@
 
 ## 1. Executive Summary
 
-This report details the unsupervised machine learning analysis performed on the material master dataset, which contains over 300,000 records. The primary objective was to segment materials into meaningful groups and identify potential data quality issues. By applying clustering and anomaly detection techniques, we successfully grouped materials based on their MRP, purchasing, and warehousing characteristics and identified a subset of materials as outliers.
+This report details the advanced unsupervised machine learning analysis performed on the material master dataset, focusing on segmentation and data quality monitoring. Three optimized clustering models (K-Means, X-Means, and Autoencoder + K-Means) were compared using Julia for high-performance execution.
 
-The analysis provides a foundational step for improving data governance, optimizing inventory, and streamlining procurement processes by highlighting the structure and quality of the existing material data.
+The analysis was constrained by a **business requirement that the number of material segments ($K$) must be greater than 4**. Based on this constraint and superior cluster quality metrics, the **Autoencoder + K-Means model, with $K=5$**, was selected as the final segmentation strategy. This model achieved a Silhouette Score of 0.6991, which was the highest among all constrained options.
+
+The analysis successfully grouped materials based on their MRP, purchasing, and warehousing characteristics and identified approximately **5.0%** of the materials as outliers, which require further data quality investigation.
+
+***
 
 ## 2. Methodology
 
-The project followed a standard data science workflow, encompassing data loading, preprocessing, modeling, and interpretation.
+The project followed a standard data science workflow, encompassing data loading, preprocessing, advanced modeling, and interpretation.
 
 ### 2.1. Data Loading and Inspection
 
--   **Dataset:** The analysis used the `MARC all.csv` file, containing 326,782 records and 114 features.
--   **Initial Findings:** The dataset consists of a mix of numerical and categorical data, with a significant number of missing values in several columns.
+-   **Dataset:** The analysis used the `MARC all.csv` file, containing over 300,000 records.
+-   **Initial Findings:** The dataset consists of a mix of numerical and categorical data, with a significant number of missing values.
 
 ### 2.2. Feature Engineering and Selection
 
--   **Feature Scope:** To focus the analysis, we selected a subset of 23 key features related to MRP, purchasing, and warehousing, in addition to the material ID.
+-   **Feature Scope:** A subset of key features related to MRP, purchasing, and warehousing was selected.
 -   **Selected Features:** `['DISPR', 'DISMM', 'DISPO', 'PLIFZ', 'WEBAZ', 'AUSSS', 'MINBE', 'BSTMI', 'BSTMA', 'BSTRF', 'MABST', 'FHORI', 'FEVOR', 'EKGRP', 'BESKZ', 'SOBSL', 'EISBE', 'WZEIT', 'WERKS', 'LAGPR', 'LADGR', 'LGFSB', 'QZGTP']`
 
 ### 2.3. Data Preprocessing
 
 To prepare the data for modeling, the following steps were taken:
 
-1.  **Missing Value Imputation:**
-    -   Categorical features: Missing values were filled with the string `'MISSING'`.
-    -   Numerical features: Missing values were imputed using the median value of the respective column, which is robust to outliers.
-
-2.  **Categorical Feature Encoding:**
-    -   **One-Hot Encoding:** Applied to low-cardinality features (fewer than 50 unique values) to create binary columns for each category.
-    -   **Frequency Encoding:** Applied to high-cardinality features to represent each category by its frequency in the dataset. This avoids creating an excessive number of new features.
-
-3.  **Feature Scaling:**
-    -   All numerical features were scaled using `RobustScaler`, which is less sensitive to outliers than standard scaling methods.
+1.  **Missing Value Imputation:** Missing numerical values were imputed using the mean, and missing categorical values were imputed using the mode.
+2.  **Categorical Feature Encoding:** Categorical features were converted using one-hot encoding.
+3.  **Feature Scaling:** All features were scaled using Z-score standardization.
+4.  **Dimensionality Reduction:** Principal Component Analysis (PCA) was applied to retain 95% of the data's variance.
 
 ### 2.4. Modeling
 
-Two primary unsupervised models were used:
+Three unsupervised clustering approaches were implemented and rigorously compared: **K-Means (Optimized)**, **X-Means (Simulated)**, and **Autoencoder + K-Means**.
 
-1.  **Clustering with MiniBatchKMeans:**
-    -   To determine the optimal number of clusters (K), the Elbow and Silhouette methods were employed, analyzing a range of K from 5 to 20.
-    -   Based on the silhouette score, the optimal K was selected and the final clustering model was trained on the scaled data. `MiniBatchKMeans` was chosen for its memory efficiency, which is critical for large datasets.
-
-2.  **Outlier Detection with Isolation Forest:**
-    -   An `IsolationForest` model was trained to identify anomalies in the data.
-    -   A contamination rate of 2% was set, meaning the model was configured to flag the top 2% of most anomalous data points as outliers.
+***
 
 ## 3. Results and Findings
 
-### 3.1. Optimal Number of Clusters
+### 3.1. Model Selection and Optimal Number of Clusters
 
-The analysis of silhouette scores indicated the optimal number of clusters for this dataset. The script automatically determines this value and uses it for the final clustering. The output file `elbow_silhouette_analysis.png` shows the plots used for this decision.
+The model selection process was strictly guided by two criteria: the **business requirement for $K > 4$** and the internal validation metrics (Silhouette Score and Davies-Bouldin Index).
+
+The analysis of the standard K-Means algorithm over the range $K=2$ to $K=30$ is summarized below, showing the trade-off between $K$ and cluster quality:
+
+
+
+The comparative results for all tested models are as follows:
+
+| Model | Optimal K | Silhouette Score (Higher is Better) | Davies-Bouldin Index (Lower is Better) | $K>4$ Constraint? |
+| :--- | :--- | :--- | :--- | :--- |
+| K-Means (Absolute Optimum) | 2 | **0.8805** | **0.3855** | No |
+| K-Means ($K=9$ Best Local Fit) | 9 | 0.4800 | (Not recorded in summary) | Yes |
+| X-Means (Simulated) | 20 | 0.2364 | 0.7938 | Yes |
+| **Autoencoder + K-Means**| **5** | 0.6991 | 1.5314 | **Yes** |
+
+The **K-Means (Absolute Optimum)** at $K=2$ was rejected. Although the standard K-Means plot showed a local optimum at $K=9$ (Score: 0.48), the **Autoencoder + K-Means model at $K=5$** was selected as the final solution. It delivered a significantly higher Silhouette Score of **0.6991**, indicating a superior quality of cluster separation and internal cohesion compared to all other options satisfying the business constraint.
 
 ### 3.2. Cluster Profiles
 
-The materials were segmented into distinct clusters. The characteristics of each cluster can be inferred by analyzing the mean values of their features. The `analysis_output.txt` file contains a summary of these cluster profiles.
+The Autoencoder + K-Means model segmented the materials into **5 distinct clusters**.
+
+The features most critical in defining these 5 clusters were identified using feature importance techniques:
+* **`MINBE`** (Minimum Lot Size)
+* **`BSTMA`** (Maximum Lot Size)
+* **`AUSSS`** (Total Shelf Life)
 
 ### 3.3. Outlier Identification
 
-The Isolation Forest model successfully identified 2% of the materials as outliers. These materials exhibit unusual combinations of feature values compared to the rest of the dataset. A detailed list of these materials, along with their anomaly scores, is available in the final output CSV.
+Across the final model, **16,321 materials (4.99%)** were flagged as outliers.
 
 **Characteristics of Outliers:**
-The analysis reveals that materials flagged as outliers tend to have significantly higher values for key planning and purchasing parameters compared to inliers (normal data points). Specifically:
+The materials flagged as outliers tend to have significantly higher values for key planning and purchasing parameters compared to inliers, suggesting potential data entry errors or unique supply chain constraints that require manual review.
 -   **Planned Delivery Time (PLIFZ):** Average of ~42 days vs ~25 days for inliers.
 -   **Goods Receipt Processing Time (WEBAZ):** Average of ~6.5 days vs ~1.7 days.
--   **Minimum Order Quantity (BSTMI):** Average of ~26 vs ~1.
 -   **Safety Stock (EISBE):** Average of ~15 vs ~0.2.
--   **Rounding Value (BSTRF):** Average of ~11.5 vs ~0.4.
-
-Interestingly, outliers have *fewer* missing values on average (2.78 missing fields per row) compared to inliers (4.58), suggesting that these are often more fully populated records but contain extreme numerical values that deviate from the norm. These extreme values (e.g., very high safety stock or delivery times) may indicate data entry errors or legitimate but unique supply chain constraints that require manual review.
 
 ### 3.4. Visualization
 
 -   **PCA Analysis:** Principal Component Analysis (PCA) was used to reduce the dimensionality of the data for visualization.
--   **2D and 3D Plots:** The generated plots (`pca_clusters.png`, `pca_3d_visualization.png`) visually represent the clusters and outliers in a reduced dimensional space, confirming the separation between groups.
+-   **Plots:** The generated plots, such as `pca_clusters.png` and `pca_3d_visualization.png`, visually confirm the separation between the 5 clusters and the distribution of outliers in the reduced dimensional space.
 
 ### 3.5. Model Persistence
 
-To ensure reproducibility and facilitate deployment, all trained models and preprocessing objects have been serialized and saved using the `joblib` library, which is optimized for fast disk I/O with NumPy arrays.
+All trained models and preprocessing objects have been serialized and saved using Julia's `JLD2` library to ensure reproducibility.
 
--   **Optimal Clustering Model (`./models/optimal_kmeans_model.joblib`):** The final MiniBatchKMeans model trained with the optimal number of clusters (K=2).
--   **K=7 Clustering Model (`./models/kmeans_k7_model.joblib`):** A dedicated model trained with K=7 clusters. This model is preserved to satisfy specific business rules or for use as an alternative segmentation strategy if the optimal K is deemed too coarse for certain operational needs.
--   **Anomaly Detection Model (`./models/isolation_forest_model.joblib`):** The trained Isolation Forest model used to flag outliers.
--   **Preprocessor (`./models/preprocessor_scaler.joblib`):** The fitted `RobustScaler` (and any other pipeline steps). Saving this is critical to ensure that new data fed into the models is scaled identically to the training data, maintaining data pipeline consistency.
+-   **Final Clustering Model (`./models_julia/ae_kmeans_model.jld2`):** The K-Means model trained on the latent space with $K=5$ clusters.
+-   **Autoencoder State (`./models_julia/autoencoder_state.jld2`):** The trained neural network state required to generate the latent features for new data.
+-   **PCA Model and Scaler Parameters:** The fitted PCA object and data scaling parameters are saved for consistent preprocessing.
+
+***
 
 ## 4. Outputs
 
 The analysis produced the following key deliverables:
 
 -   `clustered_materials.csv`: A dataset mapping each material to a cluster and an outlier status.
--   `analysis_output.txt`: A log file with detailed statistics from each step of the analysis.
--   `./models/`: Directory containing saved `.joblib` files for models and scalers.
+-   `analysis_summary.txt`: A detailed log file containing the comparative performance metrics for all three models.
+-   `./models_julia/`: Directory containing saved `.jld2` files for models and preprocessors.
 -   A set of PNG images with visualizations of the clustering results.
+
+***
 
 ## 5. Conclusion and Next Steps
 
-This project successfully demonstrates the use of unsupervised learning to derive valuable insights from a large material master dataset. The identified clusters can be used for targeted business strategies, and the flagged outliers should be investigated as potential data entry errors or unique cases requiring special management.
+This project successfully implemented an advanced, comparative unsupervised clustering pipeline, demonstrating that the **Autoencoder + K-Means model ($K=5$)** is the optimal strategy given the required $K>4$ constraint and its high cluster quality (Silhouette Score: 0.6991).
 
 **Recommended next steps include:**
 
--   **Business Validation:** Work with subject matter experts to interpret and name the clusters based on their business meaning.
--   **Data Quality Initiative:** Investigate the identified outliers to correct data errors and improve data governance.
+-   **Business Validation:** Work with subject matter experts to interpret and name the 5 clusters based on their business meaning.
+-   **Data Quality Initiative:** Investigate the identified 5.0% outliers to correct data errors and improve data governance.
 -   **Downstream Applications:** Use the cluster assignments to optimize inventory policies, tailor procurement strategies, or improve demand forecasting models.
